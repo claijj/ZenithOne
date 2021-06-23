@@ -13,6 +13,7 @@ export class AirTaxi {
     public Manufacturer: string;
     public Model : string;
     public SerialNumber : string;
+    public Active : boolean;
     
     public MaxPax : string;             // number;
     public MaxAirSpeed : string;        // number;  
@@ -22,11 +23,11 @@ export class AirTaxi {
 
     public DateManufactured : string;
     public DateRegistered : string;
+    public DateDeregistered : string;
     public DateApprovedforService : string;
     public ServiceApprovalEndDate: string;
     public ApprovalAuthority : string;
-    public value: string;
-
+    
     public TravelPlanID: string;
     public DeparturePort: string;
     public DepartureDateTime: string;

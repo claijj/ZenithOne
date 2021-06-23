@@ -2,102 +2,119 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Context } from 'fabric-contract-api';
-import { ChaincodeStub, ClientIdentity } from 'fabric-shim';
-import { AirTaxiContract } from '.';
+import { Context, Contract, Info, Returns, Transaction } from 'fabric-contract-api';
+import { AirTaxi } from './air-taxi';
 
-import * as chai from 'chai';
-import * as chaiAsPromised from 'chai-as-promised';
-import * as sinon from 'sinon';
-import * as sinonChai from 'sinon-chai';
-import winston = require('winston');
+@Info({title: 'AirTaxiContract', description: 'My Smart Contract' })
+export class AirTaxiContract extends Contract {
 
-chai.should();
-chai.use(chaiAsPromised);
-chai.use(sinonChai);
+    @Transaction(false)
+    @Returns('boolean')
+    public async airTaxiExists(ctx: Context, airTaxiId: string): Promise<boolean> {
+        const data: Uint8Array = await ctx.stub.getState(airTaxiId);
+        return (!!data && data.length > 0);
+    }
 
-class TestContext implements Context {
-    public stub: sinon.SinonStubbedInstance<ChaincodeStub> = sinon.createStubInstance(ChaincodeStub);
-    public clientIdentity: sinon.SinonStubbedInstance<ClientIdentity> = sinon.createStubInstance(ClientIdentity);
-    public logger = {
-        getLogger: sinon.stub().returns(sinon.createStubInstance(winston.createLogger().constructor)),
-        setLevel: sinon.stub(),
-     };
+    @Transaction()
+    public async createAirTaxi(ctx: Context, airTaxiId: string, manufacturer: string, 
+        model: string, serialNumber: string, dateManufactured: string
+        ): Promise<void> {
+        
+        const exists: boolean = await this.airTaxiExists(ctx, airTaxiId);
+        if (exists) {
+            throw new Error(`The air taxi ${airTaxiId} already exists`);
+        }
+        const airTaxi: AirTaxi = new AirTaxi();
+        airTaxi.Manufacturer = manufacturer;
+        airTaxi.Model = model;
+        airTaxi.SerialNumber = serialNumber;
+        airTaxi.DateManufactured = dateManufactured;
+        
+        const buffer: Buffer = Buffer.from(JSON.stringify(airTaxi));
+        await ctx.stub.putState(airTaxiId, buffer);
+    }
+
+    @Transaction(false)
+    @Returns('AirTaxi')
+    public async readAirTaxi(ctx: Context, airTaxiId: string): Promise<AirTaxi> {
+        const exists: boolean = await this.airTaxiExists(ctx, airTaxiId);
+        if (!exists) {
+            throw new Error(`The air taxi ${airTaxiId} does not exist`);
+        }
+        const data: Uint8Array = await ctx.stub.getState(airTaxiId);
+        const airTaxi: AirTaxi = JSON.parse(data.toString()) as AirTaxi;
+        return airTaxi;
+    }
+
+    @Transaction()
+    public async registerAirTaxi(ctx: Context, airTaxiId: string, tailNumber: string, owner: string
+        ): Promise<void> {
+        
+        const exists: boolean = await this.airTaxiExists(ctx, airTaxiId);
+        if (!exists) {
+            throw new Error(`The air taxi ${airTaxiId} does not exist`);
+        }
+
+        const data: Uint8Array = await ctx.stub.getState(airTaxiId);
+        const airTaxi: AirTaxi = JSON.parse(data.toString()) as AirTaxi;
+
+        airTaxi.TailNumber = tailNumber;
+        airTaxi.Owner = owner;
+        
+        // Auto-populated data fields
+        let today = new Date().toLocaleDateString()
+        airTaxi.DateRegistered = today;
+        airTaxi.ApprovalAuthority = 'CAAS';
+
+        const buffer: Buffer = Buffer.from(JSON.stringify(airTaxi));
+        await ctx.stub.putState(airTaxiId, buffer);
+    }
+
+    @Transaction()
+    public async deregisterAirTaxi(ctx: Context, airTaxiId: string): Promise<void> {
+        const exists: boolean = await this.airTaxiExists(ctx, airTaxiId);
+        if (!exists) {
+            throw new Error(`The air taxi ${airTaxiId} does not exist`);
+        }
+
+        const data: Uint8Array = await ctx.stub.getState(airTaxiId);
+        const airTaxi: AirTaxi = JSON.parse(data.toString()) as AirTaxi;
+        const buffer: Buffer = Buffer.from(JSON.stringify(airTaxi));
+
+        airTaxi.Active = false;
+        let today = new Date().toLocaleDateString()
+        airTaxi.DateDeregistered = today;
+
+        await ctx.stub.putState(airTaxiId, buffer);
+    }
+
+    @Transaction(false)
+    public async queryAllAirTaxi(ctx: Context): Promise<string> {
+        const startKey = 'AT0001';
+        const endKey = 'AT9999';
+        const iterator = await ctx.stub.getStateByRange(startKey, endKey);
+        const allResults = [];
+        while (true) {
+            const res = await iterator.next();
+            if (res.value && res.value.value.toString()) {
+                console.log(res.value.value.toString());
+
+                const Key = res.value.key;
+                let Record;
+                try {
+                    Record = JSON.parse(res.value.value.toString());
+                } catch (err) {
+                    console.log(err);
+                    Record = res.value.value.toString();
+                }
+                allResults.push({ Key, Record });
+            }
+            if (res.done) {
+                console.log('end of data');
+                await iterator.close();
+                console.info(allResults);
+                return JSON.stringify(allResults);
+            }
+        }
+    }
 }
-
-describe('AirTaxiContract', () => {
-
-    let contract: AirTaxiContract;
-    let ctx: TestContext;
-
-    beforeEach(() => {
-        contract = new AirTaxiContract();
-        ctx = new TestContext();
-        ctx.stub.getState.withArgs('1001').resolves(Buffer.from('{"value":"air taxi 1001 value"}'));
-        ctx.stub.getState.withArgs('1002').resolves(Buffer.from('{"value":"air taxi 1002 value"}'));
-    });
-
-    describe('#airTaxiExists', () => {
-
-        it('should return true for a air taxi', async () => {
-            await contract.airTaxiExists(ctx, '1001').should.eventually.be.true;
-        });
-
-        it('should return false for a air taxi that does not exist', async () => {
-            await contract.airTaxiExists(ctx, '1003').should.eventually.be.false;
-        });
-
-    });
-
-    describe('#createAirTaxi', () => {
-
-        it('should create a air taxi', async () => {
-            await contract.createAirTaxi(ctx, '1002', 'Volocopter', 'Volocopter X2', 'VX2-098716', '1 Jun 2021');
-            ctx.stub.putState.should.have.been.calledOnceWithExactly('1003', Buffer.from('{"value":"air taxi 1003 value"}'));
-        });
-
-        it('should throw an error for a air taxi that already exists', async () => {
-            await contract.createAirTaxi(ctx, '1001', 'VeloCity', 'Volocopter X2', 'X2-09198VC2A', '1 Jan 2021').should.be.rejectedWith(/The air taxi 1001 already exists/);
-        });
-
-    });
-
-    describe('#readAirTaxi', () => {
-
-        it('should return a air taxi', async () => {
-            await contract.readAirTaxi(ctx, '1001').should.eventually.deep.equal({ value: 'air taxi 1001 value' });
-        });
-
-        it('should throw an error for a air taxi that does not exist', async () => {
-            await contract.readAirTaxi(ctx, '1003').should.be.rejectedWith(/The air taxi 1003 does not exist/);
-        });
-
-    });
-
-    describe('#updateAirTaxi', () => {
-
-        it('should update a air taxi', async () => {
-            await contract.updateAirTaxi(ctx, '1001', 'air taxi 1001 new value');
-            ctx.stub.putState.should.have.been.calledOnceWithExactly('1001', Buffer.from('{"value":"air taxi 1001 new value"}'));
-        });
-
-        it('should throw an error for a air taxi that does not exist', async () => {
-            await contract.updateAirTaxi(ctx, '1003', 'air taxi 1003 new value').should.be.rejectedWith(/The air taxi 1003 does not exist/);
-        });
-
-    });
-
-    describe('#deleteAirTaxi', () => {
-
-        it('should delete a air taxi', async () => {
-            await contract.deleteAirTaxi(ctx, '1001');
-            ctx.stub.deleteState.should.have.been.calledOnceWithExactly('1001');
-        });
-
-        it('should throw an error for a air taxi that does not exist', async () => {
-            await contract.deleteAirTaxi(ctx, '1003').should.be.rejectedWith(/The air taxi 1003 does not exist/);
-        });
-
-    });
-
-});

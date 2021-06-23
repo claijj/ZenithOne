@@ -71,12 +71,21 @@ export class AirTaxiContract extends Contract {
     }
 
     @Transaction()
-    public async deleteAirTaxi(ctx: Context, airTaxiId: string): Promise<void> {
+    public async deregisterAirTaxi(ctx: Context, airTaxiId: string): Promise<void> {
         const exists: boolean = await this.airTaxiExists(ctx, airTaxiId);
         if (!exists) {
             throw new Error(`The air taxi ${airTaxiId} does not exist`);
         }
-        await ctx.stub.deleteState(airTaxiId);
+
+        const data: Uint8Array = await ctx.stub.getState(airTaxiId);
+        const airTaxi: AirTaxi = JSON.parse(data.toString()) as AirTaxi;
+        const buffer: Buffer = Buffer.from(JSON.stringify(airTaxi));
+
+        airTaxi.Active = false;
+        let today = new Date().toLocaleDateString()
+        airTaxi.DateDeregistered = today;
+
+        await ctx.stub.putState(airTaxiId, buffer);
     }
 
     @Transaction(false)

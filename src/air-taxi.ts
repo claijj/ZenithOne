@@ -34,7 +34,10 @@ export class AirTaxi {
     public ArrivalPort: string;
     public ArrivalDateTime: string;
     public PilotID: string;
-    public PassengerID : string[];
+    public PassengerID : string;
+    public FlightPlanApproved: boolean;
+    public Embarked: boolean;
+    public Disembarked: boolean;
 }
 
 /** 

@@ -1,15 +1,16 @@
 import { Gateway, Wallets } from 'fabric-network';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as readLine from 'readLine';
 
 async function ReadAirTaxiHistory() {
-	console.log('ReadAirTaxi');
+	console.log('ReadAirTaxiHistory');
 
 	try {
 		// Create a new file system based wallet for managing identities.
 		const walletPath = path.join(process.cwd(), 'Wallet');
 		const wallet = await Wallets.newFileSystemWallet(walletPath);
-		console.log(`Wallet path: ${walletPath}`);
+		// console.log(`Wallet path: ${walletPath}`);
 		
 		// Create a new gateway for connecting to our peer node.
 		const gateway = new Gateway();
@@ -38,13 +39,14 @@ async function ReadAirTaxiHistory() {
 	}
 }
 
+async function ReadAirTaxi() {
+	console.log ('ReadAirTaxi');
 
-async function main() {
 	try {
 		// Create a new file system based wallet for managing identities.
 		const walletPath = path.join(process.cwd(), 'Wallet');
 		const wallet = await Wallets.newFileSystemWallet(walletPath);
-		console.log(`Wallet path: ${walletPath}`);
+		// console.log(`Wallet path: ${walletPath}`);
 		
 		// Create a new gateway for connecting to our peer node.
 		const gateway = new Gateway();
@@ -60,7 +62,8 @@ async function main() {
 		const contract = network.getContract('airtaxiservice-contract');
 		
 		// Submit the specified transaction.
-		await contract.submitTransaction('readAirTaxi', 'AT0001');
+		let AirTaxi: Buffer = await contract.submitTransaction('readAirTaxi', 'AT0001');
+		console.log (JSON.parse(AirTaxi.toString()));
 		console.log('Transaction has been submitted');
 		
 		// Disconnect from the gateway.
@@ -72,5 +75,29 @@ async function main() {
 	}
 }
 
-// void main();
-void ReadAirTaxiHistory();
+async function main() {
+    const readLine = require('readline').createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    let answer = ""
+    readLine.question("1. Read Air Taxi\n2. Read Air Taxi History\n: ", (it: string) => { 
+         answer = it
+		 switch (answer) {
+			 case '1':
+				void ReadAirTaxi()		 
+				break;
+
+			case '2':
+				void ReadAirTaxiHistory()
+				break;
+		 
+			 default:
+				 break;
+		 } 
+         readLine.close()
+    })
+}
+
+void main();

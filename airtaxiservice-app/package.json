@@ -13,9 +13,8 @@
     "build": "tsc",
     "build:watch": "tsc -w",
     "start": "node ./dist/ZenithOne.js",
-    "airtaxihistory": "node ./dist/airtaxihistory.js",
-    "requestairtaxi": "node ./dist/requestairtaxi.js",
-    "fileflightplan": "node ./dist/fileflightplan.js"
+    "airtaxioperator": "node ./dist/airtaxi-operator.js",
+    "airtaxiauthority": "node ./dist/airtaxi-authority.js"
   },
   "engineStrict": true,
   "dependencies": {

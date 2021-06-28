@@ -155,10 +155,11 @@ export class AirTaxiContract extends Contract {
     
     @Transaction()
     @Returns('AirTaxi')
-    public async requestTaxi(ctx: Context): Promise<AirTaxi> {
+    public async requestAirTaxi(ctx: Context): Promise<AirTaxi> {
         // Simulation: Air Taxi Operator will find available air taxi for the required time slot and assign an air taxi
         console.log('Air Taxi AT0001 booked')
-        return (this.readAirTaxi(ctx,'AT0001'))
+        const airTaxi: AirTaxi = await this.readAirTaxi(ctx,'AT0001');
+        return airTaxi;
     }
 
     @Transaction()

@@ -65,37 +65,37 @@ describe('AirTaxiContract', () => {
     describe('#readAirTaxi', () => {
 
         it('should return a air taxi', async () => {
-            await contract.readAirTaxi(ctx, '1001').should.eventually.deep.equal({ value: 'air taxi 1001 value' });
+            await contract.readAirTaxi(ctx, 'AT10001').should.eventually.deep.equal({ value: 'air taxi 1001 value' });
         });
 
         it('should throw an error for a air taxi that does not exist', async () => {
-            await contract.readAirTaxi(ctx, '1003').should.be.rejectedWith(/The air taxi 1003 does not exist/);
+            await contract.readAirTaxi(ctx, 'AT1003').should.be.rejectedWith(/The air taxi AT1003 does not exist/);
         });
 
     });
 
-    describe('#updateAirTaxi', () => {
+    describe('#registerAirTaxi', () => {
 
         it('should update a air taxi', async () => {
-            await contract.updateAirTaxi(ctx, '1001', 'air taxi 1001 new value');
+            await contract.registerAirTaxi(ctx, 'AT0003', '9VTST', 'Pwned Air');
             ctx.stub.putState.should.have.been.calledOnceWithExactly('1001', Buffer.from('{"value":"air taxi 1001 new value"}'));
         });
 
         it('should throw an error for a air taxi that does not exist', async () => {
-            await contract.updateAirTaxi(ctx, '1003', 'air taxi 1003 new value').should.be.rejectedWith(/The air taxi 1003 does not exist/);
+            await contract.registerAirTaxi(ctx, '1003', 'No such asset', 'No such asset').should.be.rejectedWith(/The air taxi 1003 does not exist/);
         });
 
     });
 
-    describe('#deleteAirTaxi', () => {
+    describe('#deregisterAirTaxi', () => {
 
-        it('should delete a air taxi', async () => {
-            await contract.deleteAirTaxi(ctx, '1001');
-            ctx.stub.deleteState.should.have.been.calledOnceWithExactly('1001');
+        it('should deregister a air taxi', async () => {
+            await contract.deregisterAirTaxi(ctx, 'AT0006');
+            ctx.stub.deleteState.should.have.been.calledOnceWithExactly('AT0006');
         });
 
         it('should throw an error for a air taxi that does not exist', async () => {
-            await contract.deleteAirTaxi(ctx, '1003').should.be.rejectedWith(/The air taxi 1003 does not exist/);
+            await contract.deregisterAirTaxi(ctx, '1003').should.be.rejectedWith(/The air taxi 1003 does not exist/);
         });
 
     });
